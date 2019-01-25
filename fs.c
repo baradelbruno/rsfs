@@ -301,7 +301,6 @@ void save_buffer(char *buffer, int file) {
     t += SECTORSIZE;
   }
 
-  file_save[file].sector += 8;
 }
 
 void read_buffer(char *buffer, int file) {
@@ -327,6 +326,30 @@ int fs_write(char *buffer, int size, int file) {
     return -1;
   }
 
+
+  if (size != 10) {
+      int j;
+      for (j = 0; j < size; j++, file_save[file].posbuffer++) {
+          tempbuffer[file_save[file].posbuffer] = buffer[j];
+          file_save[file].nbytes++;
+        }
+          char *t = tempbuffer;
+
+          file_save[file].sector = file_save[file].blocoatual * 8;
+          for (int i = file_save[file].sector; i < file_save[file].sector + 8; i++) {
+            bl_write(i, t);
+
+            t += SECTORSIZE;
+          }
+
+          clean_buffer(tempbuffer);
+          file_save[file].posbuffer = 0;
+
+          dir[file].size = file_save[file].nbytes;
+          write_fat();
+          return j;
+  }
+
   int j;
   for (j = 0; j < size; j++, file_save[file].posbuffer++) {
 
@@ -342,32 +365,15 @@ int fs_write(char *buffer, int size, int file) {
       fat[i] = 2;
 
       file_save[file].blocoatual = i;
+      dir[file].size = file_save[file].nbytes;
       write_fat();
     }
 
     tempbuffer[file_save[file].posbuffer] = buffer[j];
     file_save[file].nbytes++;
 
-    if (size != 10) {
-      if (file_save[file].posbuffer > 0) {
-        char *t = tempbuffer;
-
-        file_save[file].sector = file_save[file].blocoatual * 8;
-        for (int i = file_save[file].sector; i < file_save[file].sector + 8; i++) {
-          bl_write(i, t);
-
-          t += SECTORSIZE;
-        }
-
-        file_save[file].sector += 8;
-        clean_buffer(tempbuffer);
-        file_save[file].posbuffer = 0;
-
-        write_fat();
-      }
-    }
   }
-  dir[file].size += j;
+
   return j;
 }
 
@@ -384,8 +390,12 @@ int fs_read(char *buffer, int size, int file) {
   }
 
     read_fat();
+
+    if (file_read[file].nbytes > dir[file].size)
+      return 0;
+
     int j;
-    for (j = 0; j < size;j++, file_read[file].posbuffer++) {
+    for (j = 0; j < size; j++, file_read[file].posbuffer++) {
       file_read[file].nbytes++;
       if (file_read[file].posbuffer == 4096) file_read[file].posbuffer = 0;
       if (file_read[file].posbuffer == 0) {
@@ -393,9 +403,6 @@ int fs_read(char *buffer, int size, int file) {
       }
 
         buffer[j] = tempbuffer[file_read[file].posbuffer];
-
-      if (file_read[file].nbytes > dir[file].size)
-        return 0;
     }
     return j;
 }
