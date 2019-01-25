@@ -281,10 +281,12 @@ int fs_open(char *file_name, int mode) {
 }
 
 int fs_close(int file)  {
-  for(int i = 0; i < 128; i++) {
-    file_save[i].aberto = 0;
-    file_read[i].aberto = 0;
+  if (dir[file].used != 1) {
+    printf("Nao existe arquivo aberto com esse identificador!\n");
+    return -1;
   }
+  file_save[file].aberto = 0;
+  file_read[file].aberto = 0;
   return 0;
 }
 
@@ -315,7 +317,7 @@ void read_buffer(char *buffer, int file) {
 
 int fs_write(char *buffer, int size, int file) {
 
-  if (dir[file].used == 1) {
+  if (dir[file].used == 0) {
       printf("Nao existe arquivo aberto com esse identificador!\n");
       return -1;
   }
