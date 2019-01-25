@@ -315,15 +315,20 @@ void read_buffer(char *buffer, int file) {
 
 int fs_write(char *buffer, int size, int file) {
 
-  if (file_save[file].aberto != 1 && dir[file].used == 1)
-    return -1;
+  if (dir[file].used == 1) {
+      printf("Nao existe arquivo aberto com esse identificador!\n");
+      return -1;
+  }
 
+  if (file_save[file].aberto != 1) {
+    printf("O arquivo nao esta aberto para escrita!\n");
+    return -1;
+  }
 
   int j;
   for (j = 0; j < size; j++, file_save[file].posbuffer++) {
+
     if (file_save[file].posbuffer >= 4096) {
-
-
       file_save[file].posbuffer = 0;
 
       int i = file_save[file].blocoatual;
@@ -366,8 +371,15 @@ int fs_write(char *buffer, int size, int file) {
 
 int fs_read(char *buffer, int size, int file) {
 
-    if (file_save[file].aberto != -1 && dir[file].used == 0)
+  if (dir[file].used == 0) {
+      printf("Nao existe arquivo aberto com esse identificador!\n");
       return -1;
+  }
+
+  if (file_save[file].aberto != -1) {
+    printf("O arquivo nao esta aberto para leitura!\n");
+    return -1;
+  }
 
     read_fat();
     int j;
@@ -378,13 +390,10 @@ int fs_read(char *buffer, int size, int file) {
         read_buffer(tempbuffer, file);
       }
 
-      if (size == 10) {
         buffer[j] = tempbuffer[file_read[file].posbuffer];
-      }
-      if (file_read[file].nbytes > dir[file].size) {
 
+      if (file_read[file].nbytes > dir[file].size)
         return 0;
-      }
     }
     return j;
 }
